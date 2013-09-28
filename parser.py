@@ -57,18 +57,14 @@ class value:
   def set_next(self,val):
     self.next = val
 
-def num_args(msg):
-  return msg.count('%')
-
-def pos_first_arg_occ(msg):
-  return msg.find('%')
-
-
 class parse:
   def __init__(self,filename):
+    self.filename = filename
+  def parse_file(self):
     from lexer import lexer, token
     from parser import parser
-    self.filename = filename
+    from utils import function, debug_msg
+    filename = self.filename
     entry = global_tbl_entry()
     print "parser: Lexing on file:", self.filename
     body = file(self.filename, 'rt').read()
@@ -139,10 +135,12 @@ class parse:
         elif token.get_type() == "Debug":
           parser.set_state("Debug")
           dbg_msg = debug_msg()
+          print "MAcro Name ===================================================",token.get_value()
           dbg_msg.set_macro_name(token.get_value())
         elif token.get_type() == "Entry/Exit":
           parser.set_state("DebugEntry/Exit")
           dbg_msg = debug_msg()
+          print "MAcro Name ==================================================",token.get_value()
           dbg_msg.set_macro_name(token.get_value())
       elif parser.get_state() == "Debug":
         if token.get_value() == "(":
@@ -167,7 +165,7 @@ class parse:
           small_brace -= 1
           if small_brace == 0:
             print "parser: **** Finished one Debug message***** "
-            insert_in_tbl(dbg_msg,aFunction);
+            insert_in_tbl(entry, dbg_msg,aFunction);
             parser.set_state("Function")
         if token.get_value() == "(":
           small_brace += 1
