@@ -1,0 +1,4 @@
+a_func	sample.c	/^void a_func(){$/
+another_func	sample.c	/^static int another_func(ih jh)$/
+d	sample.c	9
+sdfgf	sample.c	5
