@@ -38,11 +38,11 @@ from threading import Thread
 class global_tbl:
   def __init__(self):
     self.lock = threading.Lock()
-    self.tbl = []
+    self.tbl = dict()
 
 #open current directory
-path = "."
-def map_reduce(path):
+file_path = "."
+def map_reduce(file_path=None):
   from parser import parse
   from lexer import lexer
   from utils import function, debug_msg, insert_in_tbl
@@ -50,9 +50,12 @@ def map_reduce(path):
   #check for input args
   #global the_tbl
   the_tbl = global_tbl()
-  if os.path.isfile(path) and path.endswith(".tbl"):
+  if not file_path:
+    file_path = "."
+    print "No file_path specified for parsing the source code starting from current directory"
+  if os.path.isfile(file_path) and file_path.endswith(".tbl"):
     #read file to create the_tbl
-    f = open(path)
+    f = open(file_path)
     entry = None
     func = None
     for line in f:
@@ -61,7 +64,7 @@ def map_reduce(path):
         #for this file
         if entry:
           the_tbl.lock.qcquire()
-          the_tbl.tbl.append(entry)
+          the_tbl.tbl[entry.get_file_name()] = entry
           the_tbl.lock.release()
         
         filename_start = line.find(':')
@@ -102,15 +105,15 @@ def map_reduce(path):
     #insert the last entry
     if entry:
       the_tbl.lock.acquire()
-      the_tbl.tbl.append(entry)
+      the_tbl.tbl[entry.get_file_name()] = entry
       the_tbl.lock.release()
 
-    return the_tbl
+    return the_tbl.tbl
   #else scan/parse directory to make the_tbl
 
-  print path
+  print file_path
   #create table write table
-  the_tbl = make_tbl(path)
+  the_tbl = make_tbl(file_path)
   save_tbl_in_file(the_tbl.tbl)
   return the_tbl
 def save_tbl_in_file(tbl):
@@ -152,10 +155,10 @@ def write_value(f,value):
     f.write("\t&#?msg_args:")
     f.write(dbg_msg.get_args())
     f.write("\n")
-def make_tbl(path):
+def make_tbl(file_path):
   #for each folder in this folder spawn a thread
   the_tbl = global_tbl()
-  dirs = os.listdir(path)
+  dirs = os.listdir(file_path)
   print "directories and files: "
   for file in dirs:
     if os.path.isdir(file):
@@ -177,11 +180,11 @@ def make_tbl(path):
         the_tbl.lock.release()
   return the_tbl
 
-
-if len(sys.argv) != 2:
-  print 'parser: Please specify one filename on the command line.'
-  sys.exit(1)
-path = sys.argv[1]
-map_reduce(path)
+if __name__ == "__main__":
+  if len(sys.argv) != 2:
+    print 'parser: Please specify one filename on the command line.'
+    sys.exit(1)
+  file_path = sys.argv[1]
+  map_reduce(file_path)
 
 #for each .c and .cpp file in this folder do processing

@@ -28,7 +28,9 @@
 #read line by line
 
 #date starts with 2012 or 2013 ignore this line
-import sys
+import sys, os
+from utils import global_tbl_entry, insert_in_tbl
+from map_reduce_build_hash_tbls import map_reduce
 
 class logMsg:
   def __init__(self):
@@ -54,12 +56,38 @@ class logMsg:
     self.func_args = func_args
 
 
-
-if len(sys.argv) != 2:
+#tokenize based on space first entry file name second line number
+#third H fourth till end is message
+#seach message + file number
+num_args = len(sys.argv)
+print num_args
+if num_args < 2:
   print 'Log Analyzer: Please specify one log filename on the command line.'
+  print 'parser: Please specify one filename(log file in text) to parse on the command line.'
+  print "Usage: python parse_log_file.py <log_file_name.txt> <optional:function_log_table_file.tbl>"
+  print "If second argument is not provided first .tbl file is used"
   sys.exit(1)
-filename = sys.argv[1]
-log_file = open(filename)
+log_file_name = sys.argv[1]
+path = None
+if num_args == 3:
+  path = sys.argv[2]
+if not path:
+  print "Warning: No function message table file specified"
+  dirs = os.listdir(".")
+  for f in dirs:
+    if f.endswith(".tbl"):
+      path = f
+      break
+  if not path:
+    print "Error: No function message table file found in current directory"
+    print "Run map_reduce_build_hash_tbls.py file specifying the source code directory"
+    print "Copy the above generated file .tbl file here "
+    sys.exit(1)
+print "Log file to analyze: ", log_file_name
+print "log - function table file name: ", path
+the_tbl = map_reduce(path)
+log_file = open(log_file_name)
+out_file = open(log_file_name+"function_list.txt", 'w')
 for line in log_file:
   if line.startswith("2013") or line.startswith("2012"):
     pass
@@ -82,15 +110,16 @@ for line in log_file:
       print "log file parsing: filename: ", file_name
       print "log file parsing: line number: ", line_num
       print "log file parsing: Debug message: ", msg
-
-
+      if file_name in the_tbl.keys():
+        print "This file is parsed and has saved "
+        entry = the_tbl[file_name]
+        print "Searching function for message: ", msg
+        function_name = entry.get_func_name_from_message(msg)
+        if function_name:
+          print "Found function: ", function_name
+          out_file.write(function_name+"\n")
 
 
 
 #file name line number H message
-#tokenize based on space first entry file name second line number
-#third H fourth till end is message
-#seach message + file number
-
-
 
