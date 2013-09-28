@@ -23,6 +23,7 @@
 """
 from lexer import lexer, token
 import sys
+from utils import global_tbl_entry, insert_in_tbl
 
 class parser:
   def __init__(self):
@@ -34,48 +35,6 @@ class parser:
   def set_state(self,state):
     print "parser: changing parser state from: ", self.state, " to: ",state
     self.state = state
-
-class debug_msg:
-  def __init__(self):
-    self.macro_name = "" #not used
-    self.message = ""
-    self.args = ""
-  def set_macro_name(self, macro_name):
-    self.macroname = macro_name
-  def get_macro_name(self):
-    return self.macro_name
-  def set_message(self, message):
-    self.message = message
-  def get_message(self):
-    return self.message
-  def get_macro_name(self):
-    return self.macro_name
-  def set_args(self, args):
-    self.args = args
-  def append_args(self,to_append):
-    #combine %s if any which has constant string e.g. "%s","args"
-    self.args += ","
-    self.args += to_append
-  def get_args(self):
-    return self.args
-
-
-class function:
-  def __init__(self):
-    self.name = ""
-    self.args = ""
-  def set_name(self, func_name):
-    self.name = func_name
-  def get_func_name(self):
-    return self.name
-  def set_args(self, args):
-    self.args = args
-  def append_args(self,to_append):
-    #combine %s if any which has constant string e.g. "%s","args"
-    self.args += ","
-    self.args += to_append
-  def get_args(self):
-    return self.args
 
 #dictionary of debug message followed by object which is
 #sebug argument function name file name, function argument
@@ -98,50 +57,19 @@ class value:
   def set_next(self,val):
     self.next = val
 
-cmplt_msg_tbl = dict()
-partial_msg_tbl = dict()
-#list
-rest = []
-
 def num_args(msg):
   return msg.count('%')
 
 def pos_first_arg_occ(msg):
   return msg.find('%')
 
-def insert_in_list(table_entry,val):
-  if table_entry.get_next == None:
-    table_entry.set_next(val)
-  else:
-    insert_in_list(table_entry.get_next(),val)
-
-
-def insert_in_tbl(dbg_msg,func):
-  print "parser: ",dbg_msg.get_message()
-  print "parser: ",func.get_func_name()
-  val = value()
-  val.set_function(func)
-  val.set_dbg_msg(dbg_msg)
-  val.set_next(None)
-  pos = pos_first_arg_occ(dbg_msg.get_message())
-  if num_args(dbg_msg.get_message()) == 0:
-    print "parser: inserting in cmplt_msg_tbl "
-    cmplt_msg_tbl[dbg_msg.get_message()] = val
-  elif pos > 12:
-    print "parser: inserting in partial_msg_tbl "
-    if(partial_msg_tbl.get(dbg_msg.get_message()[:12],None) == None):
-      partial_msg_tbl[dbg_msg.get_message()[:12]] = val;
-    else:
-      insert_in_list(partial_msg_tbl.get(dbg_msg.get_message()[:12],val))
-  else:
-    print "parser: inserting in rest "
-    rest.append(val)
 
 class parse:
   def __init__(self,filename):
     from lexer import lexer, token
     from parser import parser
     self.filename = filename
+    entry = global_tbl_entry()
     print "parser: Lexing on file:", self.filename
     body = file(self.filename, 'rt').read()
     print 'parser: rORIGINAL:', repr(body)
@@ -228,7 +156,7 @@ class parse:
           small_brace -= 1
           if small_brace == 0:
             print "parser: **** Finished one Debug message***** "
-            insert_in_tbl(dbg_msg,aFunction);
+            insert_in_tbl(entry, dbg_msg, aFunction);
             parser.set_state("Function")
 
         else:
@@ -253,20 +181,20 @@ class parse:
     print "parser: ***********all tables ***********************"
     print
     print "parser: -----------Rest-------------------"
-    for val in rest:
+    for val in entry.rest_in_list:
       print "parser: Function: ", val.get_function().get_func_name(), " Message: ", val.get_dbg_msg().get_message()," Debug Args: ", val.get_dbg_msg().get_args()
 
     print
     print "parser: ----------cmplt_msg_tbl--------------------"
-    for hash_key in cmplt_msg_tbl.keys():
-      val = cmplt_msg_tbl[hash_key]
+    for hash_key in entry.cmplt_msg_tbl.keys():
+      val = entry.cmplt_msg_tbl[hash_key]
       print "parser: Function: ", val.get_function().get_func_name(), " Message: ", val.get_dbg_msg().get_message()," Debug Args: ", val.get_dbg_msg().get_args()
 
     print
     print "parser: ----------partial_msg_tbl--------------------"
-    for hash_key in partial_msg_tbl.keys():
+    for hash_key in entry.partial_msg_tbl.keys():
       print hash_key
-      val = partial_msg_tbl[hash_key]
+      val = entry.partial_msg_tbl[hash_key]
       print "parser: Function: ", val.get_function().get_func_name(), " Message: ", val.get_dbg_msg().get_message()," Debug Args: ", val.get_dbg_msg().get_args()
-
+    return entry
 #parse = parse("sample.c")
